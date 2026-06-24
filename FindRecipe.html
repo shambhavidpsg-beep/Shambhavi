@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Recipe Finder</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    min-height:100vh;
+    background:linear-gradient(135deg,#ffecd2,#fcb69f);
+    padding:30px;
+}
+
+
+.container{
+    max-width:900px;
+    margin:auto;
+    background:white;
+    padding:30px;
+    border-radius:25px;
+    box-shadow:0 15px 40px rgba(0,0,0,0.2);
+}
+
+
+h1{
+    text-align:center;
+    color:#ff6b35;
+    margin-bottom:20px;
+}
+
+
+.search-box{
+    display:flex;
+    gap:10px;
+    margin-bottom:30px;
+}
+
+
+input{
+    flex:1;
+    padding:15px;
+    border-radius:30px;
+    border:2px solid #ff6b35;
+    font-size:16px;
+}
+
+
+button{
+
+    padding:15px 25px;
+    border:none;
+    border-radius:30px;
+    background:#ff6b35;
+    color:white;
+    cursor:pointer;
+    font-size:16px;
+    transition:.3s;
+
+}
+
+button:hover{
+    transform:scale(1.05);
+    background:#e85d04;
+}
+
+
+
+.recipe{
+
+    display:none;
+    animation:fade .5s ease;
+
+}
+
+
+@keyframes fade{
+
+from{
+opacity:0;
+transform:translateY(20px);
+}
+
+to{
+opacity:1;
+}
+
+}
+
+
+.recipe h2{
+
+color:#d62828;
+margin-bottom:10px;
+
+}
+
+
+.card{
+
+background:#fff4e6;
+padding:20px;
+border-radius:20px;
+margin-top:15px;
+
+}
+
+
+ul,ol{
+
+padding-left:25px;
+line-height:1.8;
+
+}
+
+
+
+.badge{
+
+background:#06d6a0;
+color:white;
+padding:8px 15px;
+border-radius:20px;
+display:inline-block;
+margin:5px;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>🍳 Smart Recipe Finder</h1>
+
+
+<div class="search-box">
+
+<input id="dish" placeholder="Search your favourite dish...">
+
+<button onclick="findRecipe()">
+Search
+</button>
+
+</div>
+
+
+
+<div class="recipe" id="recipe">
+
+
+<h2 id="title"></h2>
+
+
+<span class="badge" id="time"></span>
+
+<span class="badge" id="level"></span>
+
+
+
+<div class="card">
+
+<h3>🥘 Ingredients</h3>
+
+<ul id="ingredients"></ul>
+
+</div>
+
+
+
+<div class="card">
+
+<h3>👨‍🍳 Cooking Steps</h3>
+
+<ol id="steps"></ol>
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<script>
+
+
+const recipes={
+
+
+pizza:{
+
+name:"🍕 Pizza",
+
+time:"30 Minutes",
+
+level:"Medium",
+
+ingredients:[
+"Pizza base",
+"Tomato sauce",
+"Mozzarella cheese",
+"Vegetables",
+"Oregano"
+],
+
+steps:[
+"Spread sauce on pizza base",
+"Add cheese and toppings",
+"Bake for 15 minutes",
+"Serve hot"
+]
+
+},
+
+
+
+pasta:{
+
+name:"🍝 Pasta",
+
+time:"20 Minutes",
+
+level:"Easy",
+
+ingredients:[
+"Pasta",
+"Garlic",
+"Tomato sauce",
+"Cheese",
+"Herbs"
+],
+
+steps:[
+"Boil pasta",
+"Prepare sauce",
+"Mix pasta with sauce",
+"Add cheese and serve"
+]
+
+},
+
+
+
+burger:{
+
+name:"🍔 Burger",
+
+time:"25 Minutes",
+
+level:"Medium",
+
+ingredients:[
+"Buns",
+"Patty",
+"Lettuce",
+"Cheese",
+"Sauce"
+],
+
+steps:[
+"Prepare patty",
+"Toast buns",
+"Add vegetables",
+"Assemble burger"
+]
+
+},
+
+
+
+biryani:{
+
+name:"🍛 Biryani",
+
+time:"1 Hour",
+
+level:"Hard",
+
+ingredients:[
+"Rice",
+"Spices",
+"Chicken/Veggies",
+"Yogurt",
+"Onions"
+],
+
+steps:[
+"Cook rice",
+"Prepare masala",
+"Layer rice and masala",
+"Cook on slow flame"
+]
+
+}
+
+
+};
+
+
+
+function findRecipe(){
+
+
+let search=document.getElementById("dish").value.toLowerCase();
+
+
+let recipe=recipes[search];
+
+
+if(recipe){
+
+
+document.getElementById("recipe").style.display="block";
+
+
+document.getElementById("title").innerHTML=recipe.name;
+
+
+document.getElementById("time").innerHTML=
+"⏱ "+recipe.time;
+
+
+document.getElementById("level").innerHTML=
+"⭐ "+recipe.level;
+
+
+
+let ing="";
+
+recipe.ingredients.forEach(i=>{
+
+ing+=`<li>${i}</li>`;
+
+});
+
+
+document.getElementById("ingredients").innerHTML=ing;
+
+
+
+let step="";
+
+recipe.steps.forEach(s=>{
+
+step+=`<li>${s}</li>`;
+
+});
+
+
+document.getElementById("steps").innerHTML=step;
+
+
+
+}
+
+else{
+
+alert("Recipe not found! Try pizza, pasta, burger or biryani 😄");
+
+}
+
+
+}
+
+
+
+</script>
+
+
+
+</body>
+</html>
