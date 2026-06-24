@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Smart Calculator</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Poppins",sans-serif;
+}
+
+
+body{
+
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:
+    linear-gradient(135deg,#667eea,#764ba2,#ff758c);
+
+}
+
+
+
+.calculator{
+
+    width:380px;
+    padding:25px;
+
+    background:rgba(255,255,255,0.18);
+    backdrop-filter:blur(15px);
+
+    border-radius:30px;
+
+    box-shadow:0 20px 50px rgba(0,0,0,0.3);
+
+}
+
+
+
+.title{
+
+    text-align:center;
+    color:white;
+    font-size:28px;
+    margin-bottom:20px;
+
+}
+
+
+
+
+#display{
+
+    width:100%;
+    height:70px;
+
+    border:none;
+    outline:none;
+
+    border-radius:20px;
+
+    padding:15px;
+
+    font-size:30px;
+
+    text-align:right;
+
+    background:white;
+
+    margin-bottom:20px;
+
+}
+
+
+
+
+.buttons{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:15px;
+
+}
+
+
+
+button{
+
+    height:65px;
+
+    border:none;
+
+    border-radius:20px;
+
+    font-size:22px;
+
+    cursor:pointer;
+
+    background:white;
+
+    transition:.3s;
+
+}
+
+
+
+button:hover{
+
+    transform:scale(1.08);
+
+    background:#ffd86f;
+
+}
+
+
+
+.operator{
+
+    background:#ff6b6b;
+
+    color:white;
+
+}
+
+
+
+.equal{
+
+    background:#00c853;
+
+    color:white;
+
+    grid-column:span 2;
+
+}
+
+
+
+.clear{
+
+    background:#333;
+
+    color:white;
+
+}
+
+
+
+footer{
+
+    text-align:center;
+
+    color:white;
+
+    margin-top:20px;
+
+    font-size:14px;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="calculator">
+
+
+<div class="title">
+Smart Calculator
+</div>
+
+
+<input id="display" disabled>
+
+
+<div class="buttons">
+
+
+<button onclick="clearDisplay()" class="clear">
+C
+</button>
+
+
+<button onclick="deleteChar()">
+⌫
+</button>
+
+
+<button onclick="insert('%')" class="operator">
+%
+</button>
+
+
+<button onclick="insert('/')" class="operator">
+÷
+</button>
+
+
+
+<button onclick="insert('7')">
+7
+</button>
+
+
+<button onclick="insert('8')">
+8
+</button>
+
+
+<button onclick="insert('9')">
+9
+</button>
+
+
+<button onclick="insert('*')" class="operator">
+×
+</button>
+
+
+
+
+<button onclick="insert('4')">
+4
+</button>
+
+
+<button onclick="insert('5')">
+5
+</button>
+
+
+<button onclick="insert('6')">
+6
+</button>
+
+
+<button onclick="insert('-')" class="operator">
+−
+</button>
+
+
+
+
+<button onclick="insert('1')">
+1
+</button>
+
+
+<button onclick="insert('2')">
+2
+</button>
+
+
+<button onclick="insert('3')">
+3
+</button>
+
+
+<button onclick="insert('+')" class="operator">
++
+</button>
+
+
+
+<button onclick="insert('0')">
+0
+</button>
+
+
+<button onclick="insert('.')">
+.
+</button>
+
+
+<button onclick="squareRoot()">
+√
+</button>
+
+
+<button onclick="power()">
+^
+</button>
+
+
+
+<button onclick="calculate()" class="equal">
+=
+</button>
+
+
+
+</div>
+
+
+<footer>
+Designed with by Shambhavi
+</footer>
+
+
+</div>
+
+
+
+<script>
+
+
+let display=document.getElementById("display");
+
+
+
+function insert(value){
+
+display.value += value;
+
+}
+
+
+
+
+function clearDisplay(){
+
+display.value="";
+
+}
+
+
+
+
+function deleteChar(){
+
+display.value =
+display.value.slice(0,-1);
+
+}
+
+
+
+
+function calculate(){
+
+try{
+
+display.value =
+eval(display.value);
+
+}
+
+catch{
+
+display.value="Error";
+
+}
+
+}
+
+
+
+
+
+function squareRoot(){
+
+try{
+
+display.value =
+Math.sqrt(eval(display.value));
+
+}
+
+catch{
+
+display.value="Error";
+
+}
+
+}
+
+
+
+
+function power(){
+
+try{
+
+let value =
+eval(display.value);
+
+display.value =
+Math.pow(value,2);
+
+}
+
+catch{
+
+display.value="Error";
+
+}
+
+}
+
+
+
+
+// Keyboard Support
+
+document.addEventListener(
+"keydown",
+function(e){
+
+
+if(
+(e.key>="0" && e.key<="9")
+||
+["+","-","*","/","."].includes(e.key)
+)
+
+{
+
+insert(e.key);
+
+}
+
+
+else if(e.key==="Enter")
+
+{
+
+calculate();
+
+}
+
+
+else if(e.key==="Backspace")
+
+{
+
+deleteChar();
+
+}
+
+
+else if(e.key==="Escape")
+
+{
+
+clearDisplay();
+
+}
+
+
+});
+
+
+
+</script>
+
+
+</body>
+</html>
