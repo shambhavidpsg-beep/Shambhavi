@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wand Chooses the Wizard — A Moving Staircase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Literata:ital,opsz,wght@0,18..144,400;0,18..144,500;0,18..144,600;1,18..144,400&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root{
+  --ink:        #14121a;   /* base background — near-black plum */
+  --stone:      #201c28;   /* panel background */
+  --stone-2:    #2a2433;
+  --parchment:  #ecdfbd;   /* library cream */
+  --parchment-2:#d8c79a;
+  --gold:       #c9a036;   /* candlelight accent */
+  --gold-dim:   #8a712c;
+  --dungeon:    #2f4b3c;   /* potions green */
+  --dungeon-lt: #4d7a5f;
+  --violet:     #5b3e75;   /* tower / magic accent */
+  --violet-lt:  #8a68ad;
+  --maroon:     #7a2331;   /* gryffindor wing */
+  --maroon-lt:  #a8425a;
+  --bronze:     #a9752f;   /* ravenclaw wing */
+  --blue-deep:  #263258;
+  --amber:      #c98a2c;   /* hufflepuff wing */
+  --charcoal-2: #211f22;
+  --star:       #c7cce0;   /* astronomy wing */
+  --indigo:     #232a52;
+  --parch-ink:  #2a2113;
+
+  --font-display: 'IM Fell English', Georgia, serif;
+  --font-body: 'Literata', Georgia, serif;
+
+  --measure: 62ch;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html{
+  scroll-behavior:smooth;
+}
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+}
+
+body{
+  margin:0;
+  background:var(--ink);
+  color:var(--parchment);
+  font-family:var(--font-body);
+  font-size:1.05rem;
+  line-height:1.6;
+  overflow-x:hidden;
+}
+
+h1,h2{
+  font-family:var(--font-display);
+  font-weight:400;
+  letter-spacing:.01em;
+  margin:0 0 .5rem;
+  color:var(--parchment);
+}
+
+.visually-hidden{
+  position:absolute; width:1px; height:1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
+}
+
+/* subtle ambient dust/particle layer */
+.dust{
+  position:fixed; inset:0; pointer-events:none; z-index:1;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(201,160,54,.35), transparent),
+    radial-gradient(1px 1px at 70% 60%, rgba(201,160,54,.25), transparent),
+    radial-gradient(1px 1px at 40% 80%, rgba(201,160,54,.2), transparent),
+    radial-gradient(1px 1px at 85% 20%, rgba(201,160,54,.3), transparent),
+    radial-gradient(1px 1px at 55% 45%, rgba(201,160,54,.2), transparent);
+  opacity:.5;
+}
+
+/* ============================================================
+   STAIRCASE RIG — decorative, fixed, rotates with scroll
+   ============================================================ */
+.staircase-rig{
+  position:fixed;
+  right:4%;
+  top:50%;
+  width:min(30vw, 300px);
+  height:min(30vw, 300px);
+  transform:translateY(-50%);
+  perspective:900px;
+  z-index:2;
+  pointer-events:none;
+}
+.rig-glow{
+  position:absolute; inset:-20%;
+  background:radial-gradient(circle at center, rgba(201,160,54,.18), transparent 65%);
+  filter:blur(6px);
+}
+.stairs-3d{
+  position:relative;
+  width:100%; height:100%;
+  transform-style:preserve-3d;
+  transform:rotateX(-18deg) rotateY(0deg);
+  transition:filter .4s ease;
+}
+.step{
+  position:absolute;
+  left:50%; top:50%;
+  width:46%; height:12%;
+  margin-left:-23%;
+  background:linear-gradient(160deg, var(--gold) 0%, var(--gold-dim) 100%);
+  border:1px solid rgba(20,18,26,.5);
+  border-radius:3px;
+  box-shadow:0 6px 14px rgba(0,0,0,.45);
+  transform-origin:center;
+  opacity:.92;
+}
+.step::after{
+  content:"";
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.15), transparent 40%);
+  border-radius:3px;
+}
+
+/* ============================================================
+   PROGRESS RAIL
+   ============================================================ */
+.progress-rail{
+  position:fixed;
+  left:4%;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:5;
+  display:flex;
+  align-items:center;
+  gap:.9rem;
+}
+.rail-track{
+  width:3px;
+  height:min(40vh, 320px);
+  background:rgba(236,223,189,.15);
+  border-radius:2px;
+  position:relative;
+  overflow:hidden;
+}
+.rail-fill{
+  position:absolute;
+  bottom:0; left:0; right:0;
+  height:0%;
+  background:linear-gradient(180deg, var(--gold), var(--gold-dim));
+  border-radius:2px;
+  transition:height .1s linear;
+}
+.rail-label{
+  display:flex;
+  flex-direction:column;
+  gap:.15rem;
+  min-width:9rem;
+}
+.rail-floor-num{
+  font-family:var(--font-display);
+  font-size:1.4rem;
+  color:var(--gold);
+}
+.rail-floor-name{
+  font-size:.78rem;
+  color:rgba(236,223,189,.75);
+  letter-spacing:.02em;
+}
+
+@media (max-width: 780px){
+  .progress-rail{ left:3%; gap:.6rem; }
+  .rail-track{ height:22vh; }
+  .rail-label{ min-width:auto; }
+  .rail-floor-name{ display:none; }
+  .staircase-rig{ width:22vw; height:22vw; right:3%; }
+}
+
+/* ============================================================
+   FLOOR LAYOUT (shared)
+   ============================================================ */
+main{ position:relative; z-index:3; }
+
+.floor{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:6rem 8vw 6rem calc(8vw + 6rem);
+  position:relative;
+  border-bottom:1px solid rgba(236,223,189,.06);
+}
+@media (max-width: 780px){
+  .floor{ padding:5rem 6vw; }
+}
+
+.floor-inner{
+  max-width:var(--measure);
+  width:100%;
+}
+
+.eyebrow-free{
+  font-family:var(--font-display);
+  font-style:italic;
+  font-size:1.05rem;
+  color:var(--gold);
+  margin:0 0 .6rem;
+}
+
+.floor h2{
+  font-size:clamp(1.9rem, 3.4vw, 2.8rem);
+  margin-bottom:1rem;
+}
+
+.floor-quote{
+  font-style:italic;
+  font-size:1.15rem;
+  line-height:1.7;
+  color:var(--parchment);
+  border-left:2px solid var(--gold);
+  padding-left:1.1rem;
+  margin:1.2rem 0 .6rem;
+  max-width:56ch;
+}
+
+.floor-tag{
+  font-size:.85rem;
+  color:rgba(236,223,189,.55);
+  margin:0;
+}
+
+/* one orchestrated reveal per floor, not per-hover */
+.reveal{
+  opacity:0;
+  transform:translateY(28px);
+}
+.reveal.is-visible{
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity .9s ease, transform .9s ease;
+}
+@media (prefers-reduced-motion: reduce){
+  .reveal{ opacity:1; transform:none; transition:none; }
+}
+
+/* ============================================================
+   GROUND FLOOR — THE GREAT HALL
+   ============================================================ */
+.floor--hall{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(201,160,54,.12), transparent 60%),
+    linear-gradient(180deg, var(--ink), #0d0c11);
+  flex-direction:column;
+  text-align:center;
+  padding-left:8vw;
+}
+.hall-inner{ max-width:52ch; }
+.hall-title{
+  font-size:clamp(2.6rem, 6vw, 4.6rem);
+  line-height:1.05;
+  margin:.4rem 0 1.3rem;
+}
+.hall-quote{
+  font-style:italic;
+  font-size:1.15rem;
+  color:var(--parchment);
+  max-width:48ch;
+  margin:0 auto 1rem;
+}
+.hall-sub{
+  color:rgba(236,223,189,.7);
+  max-width:44ch;
+  margin:0 auto 2.2rem;
+}
+.scroll-cue{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.5rem;
+  font-family:var(--font-display);
+  font-style:italic;
+  color:var(--gold);
+}
+.scroll-cue-line{
+  width:1px; height:46px;
+  background:linear-gradient(180deg, var(--gold), transparent);
+  animation:cue-pulse 2.2s ease-in-out infinite;
+}
+@keyframes cue-pulse{
+  0%,100%{ opacity:.3; }
+  50%{ opacity:1; }
+}
+
+.candles{
+  position:absolute; inset:0 0 auto 0;
+  height:38%;
+  pointer-events:none;
+}
+.candle{
+  position:absolute;
+  left:var(--x);
+  top:8%;
+  width:2px;
+  height:70px;
+  background:linear-gradient(180deg, transparent, rgba(236,223,189,.5));
+}
+.candle::before{
+  content:"";
+  position:absolute;
+  top:-8px; left:-4px;
+  width:10px; height:12px;
+  background:radial-gradient(circle, #ffd98a, var(--gold) 60%, transparent 72%);
+  border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+  animation:flicker 2.6s ease-in-out infinite;
+  animation-delay:var(--d);
+  filter:blur(.2px);
+}
+@keyframes flicker{
+  0%,100%{ transform:scale(1) translateY(0); opacity:.9; }
+  30%{ transform:scale(.92,1.06) translateY(-1px); opacity:1; }
+  60%{ transform:scale(1.05,.94) translateY(1px); opacity:.85; }
+}
+@media (prefers-reduced-motion: reduce){
+  .candle::before{ animation:none; }
+  .scroll-cue-line{ animation:none; }
+}
+
+/* ============================================================
+   FLOOR 1 — POTIONS DUNGEON
+   ============================================================ */
+.floor--dungeon{
+  background:
+    radial-gradient(circle at 80% 20%, rgba(79,122,95,.18), transparent 55%),
+    linear-gradient(180deg, #16211c, var(--ink));
+}
+.cauldron-wrap{ margin-top:1.8rem; }
+.cauldron-instructions{
+  font-size:.9rem;
+  color:rgba(236,223,189,.65);
+  margin-bottom:.8rem;
+}
+.ingredient-cards{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.6rem;
+  margin-bottom:1.2rem;
+}
+.ingredient{
+  font-family:var(--font-body);
+  font-size:.9rem;
+  color:var(--parchment);
+  background:rgba(79,122,95,.18);
+  border:1px solid var(--dungeon-lt);
+  border-radius:3px;
+  padding:.55rem .9rem;
+  cursor:pointer;
+  transition:background .25s ease, transform .25s ease;
+}
+.ingredient:hover, .ingredient:focus-visible{
+  background:rgba(79,122,95,.35);
+  transform:translateY(-2px);
+}
+.cauldron{
+  background:var(--stone);
+  border:1px solid rgba(79,122,95,.4);
+  border-radius:6px;
+  padding:1.4rem 1.6rem;
+  min-height:4.5rem;
+  display:flex;
+  align-items:center;
+}
+.cauldron-bubble{
+  font-style:italic;
+  color:var(--parchment);
+  font-size:.98rem;
+}
+
+/* ============================================================
+   FLOOR 2 — GRAND LIBRARY
+   ============================================================ */
+.floor--library{
+  background:
+    radial-gradient(circle at 20% 30%, rgba(216,199,154,.1), transparent 55%),
+    linear-gradient(180deg, #1c1810, var(--ink));
+}
+.archive{
+  margin-top:1.6rem;
+  background:var(--parchment);
+  color:var(--parch-ink);
+  border-radius:4px;
+  padding:1.5rem 1.6rem;
+  box-shadow:0 14px 30px rgba(0,0,0,.35);
+}
+.archive-label{
+  display:block;
+  font-family:var(--font-display);
+  font-style:italic;
+  font-size:1rem;
+  margin-bottom:.5rem;
+  color:var(--parch-ink);
+}
+.archive-input{
+  width:100%;
+  font-family:var(--font-body);
+  font-size:1rem;
+  padding:.6rem .8rem;
+  border:1px solid var(--parchment-2);
+  border-radius:3px;
+  background:#fbf6e8;
+  color:var(--parch-ink);
+}
+.archive-input:focus-visible{
+  outline:2px solid var(--gold-dim);
+  outline-offset:1px;
+}
+.archive-results{
+  list-style:none;
+  margin:1rem 0 0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:.4rem;
+  max-height:220px;
+  overflow-y:auto;
+}
+.archive-results li a{
+  display:block;
+  color:var(--parch-ink);
+  text-decoration:none;
+  font-size:.92rem;
+  padding:.4rem .5rem;
+  border-radius:3px;
+  border-bottom:1px dotted rgba(42,33,19,.25);
+}
+.archive-results li a:hover, .archive-results li a:focus-visible{
+  background:rgba(42,33,19,.08);
+}
+.archive-empty{
+  font-size:.88rem;
+  color:rgba(42,33,19,.6);
+  font-style:italic;
+}
+
+/* ============================================================
+   WING THEMES — floors 3–28, cycling
+   ============================================================ */
+.floor--gryffindor{
+  background:radial-gradient(circle at 75% 25%, rgba(168,66,90,.16), transparent 55%), linear-gradient(180deg, #23131a, var(--ink));
+}
+.floor--gryffindor .eyebrow-free{ color:var(--maroon-lt); }
+.floor--gryffindor .floor-quote{ border-color:var(--maroon-lt); }
+
+.floor--ravenclaw{
+  background:radial-gradient(circle at 25% 25%, rgba(38,50,88,.35), transparent 55%), linear-gradient(180deg, #161a2a, var(--ink));
+}
+.floor--ravenclaw .eyebrow-free{ color:var(--bronze); }
+.floor--ravenclaw .floor-quote{ border-color:var(--bronze); }
+
+.floor--hufflepuff{
+  background:radial-gradient(circle at 75% 75%, rgba(201,138,44,.14), transparent 55%), linear-gradient(180deg, #1e1a10, var(--ink));
+}
+.floor--hufflepuff .eyebrow-free{ color:var(--amber); }
+.floor--hufflepuff .floor-quote{ border-color:var(--amber); }
+
+.floor--astronomy{
+  background:radial-gradient(circle at 50% 15%, rgba(35,42,82,.4), transparent 60%), linear-gradient(180deg, #12142a, var(--ink));
+}
+.floor--astronomy .eyebrow-free{ color:var(--star); }
+.floor--astronomy .floor-quote{ border-color:var(--star); }
+.floor--astronomy .floor-num-mark{ color:var(--star); }
+
+.floor-num-mark{
+  display:block;
+  font-family:var(--font-display);
+  font-size:.85rem;
+  color:rgba(236,223,189,.4);
+  margin-top:1.4rem;
+}
+
+/* ============================================================
+   FLOOR 29 — HEADMASTER'S TOWER
+   ============================================================ */
+.floor--tower{
+  background:
+    radial-gradient(circle at 50% 30%, rgba(139,104,173,.2), transparent 60%),
+    linear-gradient(180deg, #201830, var(--ink));
+}
+.riddle-gate{
+  margin-top:1.6rem;
+  background:var(--stone);
+  border:1px solid var(--violet-lt);
+  border-radius:6px;
+  padding:1.6rem 1.8rem;
+}
+.riddle-text{
+  font-style:italic;
+  margin:0 0 1rem;
+  color:var(--parchment);
+}
+.riddle-form{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+}
+.riddle-input{
+  flex:1 1 12rem;
+  font-family:var(--font-body);
+  font-size:1rem;
+  padding:.6rem .8rem;
+  border:1px solid var(--violet-lt);
+  border-radius:3px;
+  background:rgba(236,223,189,.06);
+  color:var(--parchment);
+}
+.riddle-input::placeholder{ color:rgba(236,223,189,.4); }
+.riddle-input:focus-visible{
+  outline:2px solid var(--gold);
+  outline-offset:1px;
+}
+.riddle-submit{
+  font-family:var(--font-display);
+  font-style:italic;
+  font-size:1rem;
+  background:var(--violet);
+  color:var(--parchment);
+  border:1px solid var(--violet-lt);
+  border-radius:3px;
+  padding:.6rem 1.3rem;
+  cursor:pointer;
+  transition:background .25s ease;
+}
+.riddle-submit:hover, .riddle-submit:focus-visible{
+  background:var(--violet-lt);
+}
+.riddle-hint{
+  font-size:.82rem;
+  color:rgba(236,223,189,.5);
+  margin:.8rem 0 0;
+}
+.riddle-input.is-wrong{
+  border-color:var(--maroon-lt);
+  animation:shake .4s ease;
+}
+@keyframes shake{
+  0%,100%{ transform:translateX(0); }
+  25%{ transform:translateX(-5px); }
+  75%{ transform:translateX(5px); }
+}
+@media (prefers-reduced-motion: reduce){
+  .riddle-input.is-wrong{ animation:none; }
+}
+.tower-reward{
+  margin-top:1.6rem;
+}
+
+/* ============================================================
+   MOBILE / TOUCH FALLBACK
+   Heavier 3D transforms are damped via JS (matchMedia), this
+   covers the layout side of the fallback.
+   ============================================================ */
+@media (max-width: 780px){
+  .floor{ padding-left:6vw; }
+  .floor-inner{ max-width:100%; }
+  .hall-title{ font-size:clamp(2.1rem, 9vw, 3rem); }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ============ AMBIENT LAYERS ============ -->
+<div class="dust" aria-hidden="true"></div>
+
+<!-- ============ STAIRCASE RIG (decorative, fixed) ============ -->
+<aside class="staircase-rig" aria-hidden="true">
+  <div class="stairs-3d" id="stairs3d"></div>
+  <div class="rig-glow"></div>
+</aside>
+
+<!-- ============ PROGRESS RAIL ============ -->
+<nav class="progress-rail" aria-label="Floor progress">
+  <div class="rail-track">
+    <div class="rail-fill" id="railFill"></div>
+  </div>
+  <div class="rail-label">
+    <span class="rail-floor-num" id="floorNum">G</span>
+    <span class="rail-floor-name" id="floorName">The Great Hall</span>
+  </div>
+</nav>
+
+<!-- ============ FLOORS ============ -->
+<main id="floors">
+
+  <!-- FLOOR 0 — GROUND FLOOR: THE GREAT HALL (Hero) -->
+  <section class="floor floor--hall" id="floor-0" data-floor="0" data-name="The Great Hall">
+    <div class="candles" aria-hidden="true">
+      <span class="candle" style="--x:8%; --d:0s"></span>
+      <span class="candle" style="--x:22%; --d:1.1s"></span>
+      <span class="candle" style="--x:38%; --d:0.4s"></span>
+      <span class="candle" style="--x:55%; --d:1.6s"></span>
+      <span class="candle" style="--x:70%; --d:0.8s"></span>
+      <span class="candle" style="--x:86%; --d:1.9s"></span>
+      <span class="candle" style="--x:15%; --d:2.3s"></span>
+      <span class="candle" style="--x:63%; --d:0.2s"></span>
+      <span class="candle" style="--x:92%; --d:1.4s"></span>
+    </div>
+    <div class="floor-inner hall-inner reveal">
+      <p class="eyebrow-free">Ground Floor</p>
+      <h1 class="hall-title">The Wand Chooses<br>the Wizard</h1>
+      <p class="hall-quote">&ldquo;Jaise har wizard ki wand alag hoti hai, vaise hi har coder ka logic alag hota hai. Dusron ke solution copy karne se magic nahi hota, apna logic dhoondhne se hota hai.&rdquo;</p>
+      <p class="hall-sub">Thirty landings wind up from here — potions, parchment, and the odd locked door. Scroll, and the staircase will find its own way.</p>
+      <div class="scroll-cue">
+        <span>Begin the climb</span>
+        <span class="scroll-cue-line" aria-hidden="true"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOOR 1 — POTIONS DUNGEON -->
+  <section class="floor floor--dungeon" id="floor-1" data-floor="1" data-name="The Potions Dungeon">
+    <div class="floor-inner reveal">
+      <p class="eyebrow-free">1st Floor</p>
+      <h2>The Potions Dungeon</h2>
+      <p class="floor-quote">&ldquo;Potions mein ek galat ingredient aur cauldron blast! Data Structures mein ek galat pointer aur Memory Leak! Precision is the ultimate magic.&rdquo;</p>
+      <p class="floor-tag">Snape's Potions Class = Data Structures</p>
+
+      <div class="cauldron-wrap">
+        <p class="cauldron-instructions">Stir in an ingredient to see what it brews.</p>
+        <div class="ingredient-cards" id="ingredientCards">
+          <button class="ingredient" data-brew="A clean Stack: last ingredient in, first ingredient out. Drop it wrong and the cauldron overflows.">Stack Root</button>
+          <button class="ingredient" data-brew="A patient Queue: first in line gets served first. Rush it and someone gets skipped.">Queue Leaf</button>
+          <button class="ingredient" data-brew="A tangled Linked List: each node only knows the next. Lose one pointer and the trail goes cold.">Pointer Powder</button>
+          <button class="ingredient" data-brew="A branching Tree: every choice grows two more. Balance it, or it topples under its own weight.">Tree Bark</button>
+          <button class="ingredient" data-brew="A dense Hash Map: ask it anything, it answers instantly. Collisions still happen — handle them gently.">Hash Dust</button>
+        </div>
+        <div class="cauldron">
+          <div class="cauldron-bubble" id="cauldronBubble" aria-live="polite">The cauldron waits...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOOR 2 — GRAND LIBRARY -->
+  <section class="floor floor--library" id="floor-2" data-floor="2" data-name="The Grand Library">
+    <div class="floor-inner reveal">
+      <p class="eyebrow-free">2nd Floor</p>
+      <h2>The Grand Library</h2>
+      <p class="floor-quote">&ldquo;Jab aapko kisi solution ki sakht zarurat hoti hai aur aap shiddat se lag jaate ho, toh Stack Overflow pe wo specific thread apne aap mil jata hai.&rdquo;</p>
+      <p class="floor-tag">The Room of Requirement Phenomenon</p>
+
+      <div class="archive">
+        <label class="archive-label" for="archiveSearch">Search the shelves for a floor</label>
+        <input type="text" id="archiveSearch" class="archive-input" placeholder="Try &ldquo;debug&rdquo;, &ldquo;team&rdquo;, &ldquo;stress&rdquo;…" autocomplete="off">
+        <ul class="archive-results" id="archiveResults" aria-live="polite"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOORS 3–28 injected by script.js from quotesData -->
+
+  <!-- FLOOR 29 — HEADMASTER'S TOWER (locked) -->
+  <section class="floor floor--tower" id="floor-29" data-floor="29" data-name="The Headmaster's Tower">
+    <div class="floor-inner reveal">
+      <p class="eyebrow-free">Top Floor</p>
+      <h2>The Headmaster's Tower</h2>
+      <div class="riddle-gate" id="riddleGate">
+        <p class="riddle-text">A gargoyle blocks the stair. Speak the word that means "to hunt a fault until the code runs clean," and it will step aside.</p>
+        <form class="riddle-form" id="riddleForm">
+          <label for="riddleInput" class="visually-hidden">Your answer</label>
+          <input type="text" id="riddleInput" class="riddle-input" placeholder="Speak the password…" autocomplete="off">
+          <button type="submit" class="riddle-submit">Speak</button>
+        </form>
+        <p class="riddle-hint" id="riddleHint">Hint: it starts where the bugs live.</p>
+      </div>
+      <div class="tower-reward" id="towerReward" hidden>
+        <p class="floor-quote">&ldquo;Aaj ka target poora hua? Laptop close karo, Dobby ki tarah relax karo. Mischief Managed!&rdquo;</p>
+        <p class="floor-tag">Thirty floors, one staircase, one wizard: you.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+/* ============================================================
+   FLOORS DATA
+   Floors 0, 1, 2 and 29 are hand-built in index.html
+   (Great Hall, Potions Dungeon, Grand Library, Headmaster's Tower).
+   Everything below fills floors 3–28: the other 26 quotes from
+   the source document, cycling through four house-wing themes
+   so the climb keeps changing without 26 bespoke layouts.
+   ============================================================ */
+
+const WING_THEMES = ["gryffindor", "ravenclaw", "hufflepuff", "astronomy"];
+
+const WING_NAMES = {
+  gryffindor: "Gryffindor Wing",
+  ravenclaw: "Ravenclaw Wing",
+  hufflepuff: "Hufflepuff Wing",
+  astronomy: "Astronomy Landing"
+};
+
+// The 26 remaining quotes, in source order, for floors 3–28.
+const QUOTES_DATA = [
+  {
+    title: "Dumbledore's Infinite Wisdom",
+    quote: "It is not our abilities that show what we truly are, it is our choices. Syntax error sabko milte hain, par debugger chalana ya screen close kar dena — choice aapki hai."
+  },
+  {
+    title: "The Mirror of Erised Warning",
+    quote: "Placement ki dream company ki taraf dekhna accha hai, par sirf sapne dekhne se FAANG nahi milta. Mirror se bahar aao aur DSA ke questions lagao!"
+  },
+  {
+    title: "Sorting Hat's Patience",
+    quote: "Sorting Hat ne Harry ko Slytherin ya Gryffindor mein dalne se pehle waqt liya tha. Aapko bhi apni specialization (WebDev, AI, DevOps) choose karne mein waqt lage toh pareshan mat ho."
+  },
+  {
+    title: "Expecto Patronum: Debugging Edition",
+    quote: "Patronum tabhi nikalta hai jab aap sabse happiest memory sochte ho. Code compile karte waqt apni purani success yaad karo — bug door bhag jayega!"
+  },
+  {
+    title: "The Magic of Iteration",
+    quote: "Hogwarts ek din mein nahi bana tha. Pehla code humesha messy hota hai, par refactoring hi asli spellcraft hai."
+  },
+  {
+    title: "Gryffindor Courage vs. SegFault",
+    quote: "Real bravery monster se ladna nahi, balki 500 lines ke C++ code mein Segmentation Fault (core dumped) dekh kar smile karna hai."
+  },
+  {
+    title: "Hermione's Time-Turner Strategy",
+    quote: "Hermione ke paas Time-Turner tha kyunki wo padhna chahti thi. Aapke paas 24 ghante hain — consistency aur focus hi aapka real Time-Turner hai."
+  },
+  {
+    title: "Felix Felicis (Liquid Luck) is Just Hard Work",
+    quote: "Interview mein lucky mehsoos karna luck nahi hota, wo maahino ki grind aur practice ka result hota hai."
+  },
+  {
+    title: "The Marauder's Map of Learning",
+    quote: "I solemnly swear that I am up to no good. Jab tak aap code ke sath mazaak (experiment) nahi karoge, tab tak naye concepts seekhna mushkil hai."
+  },
+  {
+    title: "Quidditch & Team Projects",
+    quote: "Catching the Golden Snitch (Solo Genius) matters, lekin team coordination (Git/GitHub) ke bina match jeetna namumkin hai."
+  },
+  {
+    title: "The Daily Grind at Hogwarts",
+    quote: "Harry ne overnight Voldemort ko nahi haraya. Har saal nayi spells seekhi, practice ki, aur galti ki. Engineering bhi 8 semesters ka epic saga hai."
+  },
+  {
+    title: "Occlumency for Coders",
+    quote: "Snape ne Harry ko mind block karna sikhaya tha. Aapko distractions (Notifications, Social Media) ko block karna sikhna padega."
+  },
+  {
+    title: "Wingardium Leviosa for Stress",
+    quote: "It's Levi-O-sa, not Levio-SA! Waise hi, focus logic pe rakho, frustration pe nahi. BREATHE... aur scroll karo next floor par."
+  },
+  {
+    title: "The Forbidden Forest of Infinite Loops",
+    quote: "Agr aap while(true) mein phas gaye ho aur terminal ruk nahi raha, toh chill karo... Ctrl + C dabao aur Forbidden Forest se bahar aao."
+  },
+  {
+    title: "Dobby is a Free Developer!",
+    quote: "Jab aapka pull request bina kisi conflict ke merge ho jaye... feeling like Dobby getting a sock!"
+  },
+  {
+    title: "Professor Binn's History Class",
+    quote: "Agar Operating System ya Computer Networks ki class mein neend aa rahi hai, toh tension mat lo — even Hogwarts students fell asleep in History of Magic!"
+  },
+  {
+    title: "Polyjuice Potion UI/UX",
+    quote: "CSS lagane ke baad website aisi lagti hai jaise Polyjuice Potion peene ke baad transformation ho gaya ho. Pehle ugly, phir magical!"
+  },
+  {
+    title: "Chai & Butterbeer Reset",
+    quote: "Jab code run na ho, toh keyboard se door hato. Ek cup Chai/Coffee (aapka Butterbeer) piyo aur 10 mins baad wapas aao."
+  },
+  {
+    title: "The Invisible Cloak of Comments",
+    quote: "I don't know why this works, but don't delete it. Ye code ki Invisible Cloak hai, ise mat hatao!"
+  },
+  {
+    title: "Horcruxes = Modular Code",
+    quote: "Voldemort ne apni soul ko 7 parts mein bata tha. Aap apne code ko functions aur modules mein bato — maintain karna aasan hoga (minus the dark magic)!"
+  },
+  {
+    title: "The Elder Wand Trap",
+    quote: "Sabse best framework/language ke peeche mat bhago. Concept clear ho toh kisi bhi wand (tool) se magic kiya ja sakta hai."
+  },
+  {
+    title: "Philosopher's Stone within You",
+    quote: "Alchemic magic is not about turning lead into gold; it's about turning confusion into clarity. Har bug ek lesson hai."
+  },
+  {
+    title: "Neville Longbottom's Arc",
+    quote: "Shuruat mein sabko lagta hai unse code nahi hoga. Par 4th year aate-aate wahi Neville Nagini ka sar kaat deta hai. Trust your process!"
+  },
+  {
+    title: "Dark Arts & Tech Ethics",
+    quote: "With great code comes great responsibility. AI aur Data ki power ko humanity ki bhalai ke liye use karo, Dark Lord banne ke liye nahi."
+  },
+  {
+    title: "The Chamber of Secrets (Refactoring)",
+    quote: "Purana legacy code kholna matlab Chamber of Secrets kholna — pata nahi kaunsa Basilisk (bug) bahar nikal aaye. Par daro mat, Sword of Gryffindor (Logic) aapke paas hai."
+  },
+  {
+    title: "Hogwarts Will Always Be There to Welcome You Home",
+    quote: "Chahe kitne bhi rejection mails aayein ya backlogs ka darr ho, CSE community aur open source world mein aapke liye humesha jagah hai."
+  }
+];
+
+// All 30 floor titles (incl. the four hand-built ones) for the Library search.
+const ALL_FLOOR_TITLES = [
+  { floor: 0, name: "The Great Hall — The Wand Chooses the Wizard" },
+  { floor: 1, name: "The Potions Dungeon — Snape's Potions Class" },
+  { floor: 2, name: "The Grand Library — The Room of Requirement" },
+  ...QUOTES_DATA.map((q, i) => ({ floor: i + 3, name: q.title })),
+  { floor: 29, name: "The Headmaster's Tower — Mischief Managed" }
+];
+
+</script>
+<script>
+(function () {
+  "use strict";
+
+  const floorsContainer = document.getElementById("floors");
+  const tower = document.getElementById("floor-29");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isCompact = window.matchMedia("(max-width: 780px)").matches;
+
+  /* ============================================================
+     1. BUILD FLOORS 3–28 FROM DATA
+     ============================================================ */
+  const frag = document.createDocumentFragment();
+
+  QUOTES_DATA.forEach((item, i) => {
+    const floorNum = i + 3; // floors 3..28
+    const theme = WING_THEMES[i % WING_THEMES.length];
+
+    const section = document.createElement("section");
+    section.className = `floor floor--${theme}`;
+    section.id = `floor-${floorNum}`;
+    section.dataset.floor = String(floorNum);
+    section.dataset.name = WING_NAMES[theme];
+
+    section.innerHTML = `
+      <div class="floor-inner reveal">
+        <p class="eyebrow-free">Floor ${floorNum}</p>
+        <h2>${item.title}</h2>
+        <p class="floor-quote">&ldquo;${item.quote}&rdquo;</p>
+        <span class="floor-num-mark">${WING_NAMES[theme]} · Landing ${floorNum} of 29</span>
+      </div>
+    `;
+
+    frag.appendChild(section);
+  });
+
+  // Insert the generated floors between the Grand Library (2) and the Tower (29)
+  floorsContainer.insertBefore(frag, tower);
+
+  /* ============================================================
+     2. STAIRCASE RIG — build steps once
+     ============================================================ */
+  const stairs3d = document.getElementById("stairs3d");
+  const STEP_COUNT = 14;
+  for (let i = 0; i < STEP_COUNT; i++) {
+    const step = document.createElement("div");
+    step.className = "step";
+    const angle = i * (360 / STEP_COUNT) * 1.8; // helix twist per step
+    const rise = i * 6 - (STEP_COUNT * 3);       // vertical spread
+    step.style.transform = `translateY(${rise}px) rotateY(${angle}deg) translateZ(90px)`;
+    stairs3d.appendChild(step);
+  }
+
+  /* ============================================================
+     3. GSAP + SCROLLTRIGGER — global staircase rotation & rail
+     ============================================================ */
+  if (window.gsap && window.ScrollTrigger) {
+    gsap.registerPlugin(ScrollTrigger);
+
+    const totalTurns = reduceMotion ? 0.4 : (isCompact ? 1.2 : 3.2);
+
+    // Continuous rotation tied to overall scroll progress — one
+    // orchestrated motion driving the whole climb, not per-floor jitter.
+    gsap.to(stairs3d, {
+      rotateY: 360 * totalTurns,
+      rotateX: reduceMotion ? -18 : -10,
+      ease: "none",
+      scrollTrigger: {
+        trigger: document.body,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.6,
+      },
+    });
+
+    // Progress rail fill, tied to the same scroll range.
+    ScrollTrigger.create({
+      trigger: document.body,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true,
+      onUpdate: (self) => {
+        document.getElementById("railFill").style.height = `${self.progress * 100}%`;
+      },
+    });
+
+    // Per-floor: update rail label + a brief "landing" glow snap,
+    // and reveal that floor's content once.
+    const allFloors = Array.from(document.querySelectorAll(".floor"));
+    allFloors.forEach((floor) => {
+      const num = floor.dataset.floor;
+      const name = floor.dataset.name;
+      const inner = floor.querySelector(".reveal");
+
+      ScrollTrigger.create({
+        trigger: floor,
+        start: "top center",
+        end: "bottom center",
+        onEnter: () => landOnFloor(num, name),
+        onEnterBack: () => landOnFloor(num, name),
+      });
+
+      if (inner) {
+        ScrollTrigger.create({
+          trigger: floor,
+          start: "top 75%",
+          onEnter: () => inner.classList.add("is-visible"),
+          once: true,
+        });
+      }
+    });
+
+    function landOnFloor(num, name) {
+      document.getElementById("floorNum").textContent = num === "0" ? "G" : num;
+      document.getElementById("floorName").textContent = name;
+
+      if (!reduceMotion) {
+        gsap.fromTo(
+          stairs3d,
+          { filter: "brightness(1.6) drop-shadow(0 0 14px rgba(201,160,54,.7))" },
+          { filter: "brightness(1) drop-shadow(0 0 0 rgba(201,160,54,0))", duration: 0.7, ease: "power1.out" }
+        );
+      }
+    }
+  } else {
+    // GSAP failed to load — reveal everything immediately, no motion.
+    document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+  }
+
+  /* ============================================================
+     4. POTIONS DUNGEON — ingredient cauldron
+     ============================================================ */
+  const cauldronBubble = document.getElementById("cauldronBubble");
+  document.getElementById("ingredientCards").addEventListener("click", (e) => {
+    const btn = e.target.closest(".ingredient");
+    if (!btn) return;
+    cauldronBubble.textContent = btn.dataset.brew;
+    if (window.gsap && !reduceMotion) {
+      gsap.fromTo(
+        cauldronBubble,
+        { opacity: 0, y: 6 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power1.out" }
+      );
+    }
+  });
+
+  /* ============================================================
+     5. GRAND LIBRARY — archive search
+     ============================================================ */
+  const archiveInput = document.getElementById("archiveSearch");
+  const archiveResults = document.getElementById("archiveResults");
+
+  function renderArchive(query) {
+    archiveResults.innerHTML = "";
+    const q = query.trim().toLowerCase();
+    if (!q) return;
+
+    const matches = ALL_FLOOR_TITLES.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 6);
+
+    if (matches.length === 0) {
+      const li = document.createElement("li");
+      li.className = "archive-empty";
+      li.textContent = "No scroll matches that. Try another word.";
+      archiveResults.appendChild(li);
+      return;
+    }
+
+    matches.forEach((f) => {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = `#floor-${f.floor}`;
+      a.textContent = `${f.floor === 0 ? "Ground Floor" : "Floor " + f.floor} — ${f.name}`;
+      li.appendChild(a);
+      archiveResults.appendChild(li);
+    });
+  }
+
+  archiveInput.addEventListener("input", (e) => renderArchive(e.target.value));
+
+  /* ============================================================
+     6. HEADMASTER'S TOWER — riddle lock
+     ============================================================ */
+  const riddleForm = document.getElementById("riddleForm");
+  const riddleInput = document.getElementById("riddleInput");
+  const riddleGate = document.getElementById("riddleGate");
+  const towerReward = document.getElementById("towerReward");
+  const ANSWERS = ["debug", "debugging", "debugged"];
+
+  riddleForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const val = riddleInput.value.trim().toLowerCase();
+
+    if (ANSWERS.includes(val)) {
+      riddleGate.hidden = true;
+      towerReward.hidden = false;
+      if (window.gsap && !reduceMotion) {
+        gsap.fromTo(towerReward, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" });
+      }
+    } else {
+      riddleInput.classList.remove("is-wrong");
+      void riddleInput.offsetWidth; // restart animation
+      riddleInput.classList.add("is-wrong");
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
